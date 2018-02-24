@@ -6,6 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eslachance/enmap-level.git"
+  },
+  "bugs": {
+    "url": "https://github.com/eslachance/enmap-level/issues"
+  },
+  "homepage": "https://github.com/eslachance/enmap-level#readme",
   "keywords": [],
   "author": "Evelyne Lachance <eslachance@gmail.com> (http://evie.codes/)",
   "license": "ISC",
