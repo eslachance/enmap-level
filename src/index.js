@@ -13,7 +13,7 @@ class EnmapLevel {
       multiProcess: false,
       complexTypes: false,
       keys: 'single'
-    }
+    };
 
     if (!options.name) throw new Error('Must provide options.name');
     this.name = options.name;
@@ -32,7 +32,7 @@ class EnmapLevel {
   /**
    * Internal method called on persistent Enmaps to load data from the underlying database.
    * @param {Map} enmap In order to set data to the Enmap, one must be provided.
-   * @return {Promise} Returns the defer promise to await the ready state.
+   * @returns {Promise} Returns the defer promise to await the ready state.
    */
   init(enmap) {
     const stream = this.db.keyStream();
@@ -53,13 +53,6 @@ class EnmapLevel {
   }
 
   /**
-   * Internal method used to validate persistent enmap names (valid Windows filenames);
-   */
-  validateName() {
-    this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-  }
-
-  /**
    * Shuts down the underlying persistent enmap database.
    */
   close() {
@@ -67,10 +60,10 @@ class EnmapLevel {
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
+   * Set a value to the Enmap.
+   * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
+   * @param {*} val Required. The value of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    */
   set(key, val) {
@@ -82,10 +75,10 @@ class EnmapLevel {
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to add to the EnMap object. 
+   * Asynchronously ensure a write to the Enmap.
+   * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object. 
+   * @param {*} val Required. The value of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
    */
   async setAsync(key, val) {
@@ -97,21 +90,29 @@ class EnmapLevel {
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to delete from the EnMap object. 
-   * @param {boolean} bulk Internal property used by the purge method.  
+   * Delete an entry from the Enmap.
+   * @param {(string|number)} key Required. The key of the element to delete from the EnMap object.
+   * @param {boolean} bulk Internal property used by the purge method.
    */
   delete(key) {
     this.db.del(key);
   }
 
   /**
-   * 
-   * @param {*} key Required. The key of the element to delete from the EnMap object. 
-   * @param {boolean} bulk Internal property used by the purge method.  
+   * Asynchronously ensure an entry deletion from the Enmap.
+   * @param {(string|number)} key Required. The key of the element to delete from the EnMap object.
+   * @param {boolean} bulk Internal property used by the purge method.
    */
   async deleteAsync(key) {
     await this.db.del(key);
+  }
+
+  /**
+   * Internal method used to validate persistent enmap names (valid Windows filenames)
+   * @private
+   */
+  validateName() {
+    this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   }
 
 }
