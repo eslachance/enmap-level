@@ -3,6 +3,7 @@ declare module 'enmap-level' {
 	import { Level } from 'native-level-promise';
 
 	export class EnmapLevel<K, V> {
+		public constructor(options: EnmapLevelOptions);
 		public features: {
 			multiProcess: false;
 			complexTypes: false;
@@ -23,5 +24,10 @@ declare module 'enmap-level' {
 		private ready(): void;
 		private validateName(): void;
 	}
+
+	export type EnmapLevelOptions = {
+		name: string;
+		dataDir: string;
+	};
 
 }
