@@ -1,4 +1,4 @@
-const Level = require('native-level-promise');
+const Level = require('level');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,12 +8,6 @@ class EnmapLevel {
     this.defer = new Promise((resolve) => {
       this.ready = resolve;
     });
-
-    this.features = {
-      multiProcess: false,
-      complexTypes: false,
-      keys: 'single'
-    };
 
     if (!options.name) throw new Error('Must provide options.name');
     this.name = options.name;
@@ -34,21 +28,14 @@ class EnmapLevel {
    * @param {Map} enmap In order to set data to the Enmap, one must be provided.
    * @returns {Promise} Returns the defer promise to await the ready state.
    */
-  init(enmap) {
-    const stream = this.db.keyStream();
-    stream.on('data', (key) => {
-      this.db.get(key, (err, value) => {
-        if (err) console.log(err);
-        let parsedValue = value;
-        if (value[0] === '[' || value[0] === '{') {
-          parsedValue = JSON.parse(value);
-        }
-        enmap.set(key, parsedValue);
-      });
-    });
-    stream.on('end', () => {
+  async init(enmap) {
+    this.enmap = enmap;
+    if (this.fetchAll) {
+      await this.fetchEverything();
       this.ready();
-    });
+    } else {
+      this.ready();
+    }
     return this.defer;
   }
 
@@ -59,52 +46,68 @@ class EnmapLevel {
     this.db.close();
   }
 
+  fetch(key) {
+    return this.db.get(key);
+  }
+
+  fetchEverything() {
+    return new Promise((resolve) => {
+      const stream = this.db.keyStream();
+      stream.on('data', (key) => {
+        this.db.get(key, (err, value) => {
+          if (err) console.log(err);
+          let parsedValue = value;
+          if (value[0] === '[' || value[0] === '{') {
+            parsedValue = JSON.parse(value);
+          }
+          this.enmap.set(key, parsedValue);
+        });
+      });
+      stream.on('end', () =>
+        resolve(this)
+      );
+    });
+  }
+
   /**
    * Set a value to the Enmap.
    * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be a string or number.
    * @param {*} val Required. The value of the element to add to the EnMap object.
    * If the EnMap is persistent this value MUST be stringifiable as JSON.
+   * @return {Promise<*>} Promise returned by the database after insertion. 
    */
   set(key, val) {
     if (!key || !['String', 'Number'].includes(key.constructor.name)) {
       throw new Error('Level require keys to be strings or numbers.');
     }
     const insert = typeof val === 'object' ? JSON.stringify(val) : val;
-    this.db.put(key, insert);
+    return this.db.put(key, insert);
   }
 
-  /**
-   * Asynchronously ensure a write to the Enmap.
-   * @param {(string|number)} key Required. The key of the element to add to the EnMap object.
-   * If the EnMap is persistent this value MUST be a string or number.
-   * @param {*} val Required. The value of the element to add to the EnMap object.
-   * If the EnMap is persistent this value MUST be stringifiable as JSON.
-   */
-  async setAsync(key, val) {
-    if (!key || !['String', 'Number'].includes(key.constructor.name)) {
-      throw new Error('Level require keys to be strings or numbers.');
-    }
-    const insert = typeof val === 'object' ? JSON.stringify(val) : val;
-    await this.db.put(key, insert);
-  }
 
   /**
    * Delete an entry from the Enmap.
    * @param {(string|number)} key Required. The key of the element to delete from the EnMap object.
    * @param {boolean} bulk Internal property used by the purge method.
+   * @return {Promise<*>} Promise returned by the database after deletion
    */
   delete(key) {
-    this.db.del(key);
+    return this.db.del(key);
+  }
+
+  hasAsync(key) {
+    return this.db.get(key);
   }
 
   /**
-   * Asynchronously ensure an entry deletion from the Enmap.
-   * @param {(string|number)} key Required. The key of the element to delete from the EnMap object.
-   * @param {boolean} bulk Internal property used by the purge method.
+   * Deletes all entries in the database.
+   * @return {Promise<*>} Promise returned by the database after deletion
    */
-  async deleteAsync(key) {
-    await this.db.del(key);
+  bulkDelete() {
+    return new Promise(resolve =>
+      this.db.createKeyStream().pipe(this.bulkDeletedb.createDeleteStream()).on('end', resolve)
+    );
   }
 
   /**
