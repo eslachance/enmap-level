@@ -2,7 +2,7 @@ const Level = require('level');
 const path = require('path');
 const fs = require('fs');
 
-class EnmapLevel {
+class EnmapProvider {
 
   constructor(options) {
     this.defer = new Promise((resolve) => {
@@ -55,7 +55,9 @@ class EnmapLevel {
       const stream = this.db.keyStream();
       stream.on('data', (key) => {
         this.db.get(key, (err, value) => {
-          if (err) console.log(err);
+          if (err) {
+            /* do nothing */
+          }
           let parsedValue = value;
           if (value[0] === '[' || value[0] === '{') {
             parsedValue = JSON.parse(value);
@@ -118,6 +120,14 @@ class EnmapLevel {
     this.name = this.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   }
 
+  /**
+   * Internal method used by Enmap to retrieve provider's correct version.
+   * @return {string} Current version number.
+   */
+  getVersion() {
+    return require('./package.json').version;
+  }
+
 }
 
-module.exports = EnmapLevel;
+module.exports = EnmapProvider;
