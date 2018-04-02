@@ -52,22 +52,16 @@ class EnmapProvider {
 
   fetchEverything() {
     return new Promise((resolve) => {
-      const fetches = [];
-      const stream = this.db.keyStream();
-      stream.on('data', (key) => {
-        this.db.get(key, (err, value) => {
-          if (err) throw `Error loading: ${err}`;
-          let parsedValue = value;
-          if (value[0] === '[' || value[0] === '{') {
-            parsedValue = JSON.parse(value);
-          }
-          fetches.push(this.enmap.set(key, parsedValue));
-        });
-      });
-      stream.on('end', () =>
-        Promise.all(fetches).then(()=> resolve(this))
-      );
-    });
+      this.db.createReadStream()
+      .on('data', (data) => {
+        let parsedValue = data.value;
+        if (data.value[0] === '[' || data.value[0] === '{') {
+          parsedValue = JSON.parse(data.value);
+        }
+        this.enmap.set(data.key, parsedValue);
+      })
+      .on('end', resolve);
+    });                                         
   }
 
   /**
