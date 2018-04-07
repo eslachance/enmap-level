@@ -46,27 +46,30 @@ class EnmapProvider {
     this.db.close();
   }
 
+  /**
+   * Force fetch one a value from the enmap. If the database has changed, that new value is used.
+   * @param {string|number} key A single key to force fetch from the enmap database.
+   * @return {Promise<*>} The value of the requested key in a promise.
+   */
   fetch(key) {
     return this.db.get(key);
   }
 
+  /**
+   * Fetches every key from the persistent enmap and loads them into the current enmap value.
+   * @return {Promise<Map>} The enmap containing all values.
+   */
   fetchEverything() {
     return new Promise((resolve) => {
-      const fetches = [];
-      const stream = this.db.keyStream();
-      stream.on('data', (key) => {
-        this.db.get(key, (err, value) => {
-          if (err) throw `Error loading: ${err}`;
-          let parsedValue = value;
-          if (value[0] === '[' || value[0] === '{') {
-            parsedValue = JSON.parse(value);
+      this.db.createReadStream()
+        .on('data', (data) => {
+          let parsedValue = data.value;
+          if (data.value[0] === '[' || data.value[0] === '{') {
+            parsedValue = JSON.parse(data.value);
           }
-          fetches.push(this.enmap.set(key, parsedValue));
-        });
-      });
-      stream.on('end', () =>
-        Promise.all(fetches).then(()=> resolve(this))
-      );
+          this.enmap.set(data.key, parsedValue);
+        })
+        .on('end', resolve);
     });
   }
 
@@ -107,7 +110,7 @@ class EnmapProvider {
    */
   bulkDelete() {
     return new Promise(resolve =>
-      this.db.createKeyStream().pipe(this.bulkDeletedb.createDeleteStream()).on('end', resolve)
+      this.db.createKeyStream().on('data', async key => await this.db.del(key)).on('end', resolve)
     );
   }
 
